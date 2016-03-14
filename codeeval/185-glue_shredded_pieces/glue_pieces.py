@@ -1,4 +1,9 @@
 #!/usr/bin/python3
+
+#
+#   Created by Stephen Farnsworth
+#
+
 import sys
 
 def solve_case(seed, pieces):

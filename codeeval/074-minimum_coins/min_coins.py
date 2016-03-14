@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+#
+#   Created by Stephen Farnsworth
+#
+
 import sys
 test_cases = open(sys.argv[1], 'r')
 for test in test_cases:

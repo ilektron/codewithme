@@ -1,3 +1,7 @@
+//
+//  Created by Stephen Farnsworth
+//
+
 #include <algorithm>
 #include <iostream>
 #include <fstream>
