@@ -2,20 +2,26 @@
 //  Created by Stephen Farnsworth
 //
 
-#include <iostream>
 #include <fstream>
 #include <string>
-#include <deque>
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <stdio.h>
+#include <iostream>
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::string;
+using std::equal;
+using std::vector;
+using std::getline;
+using std::stringstream;
 
-deque<string> tokenize(const string& line, char delim)
+inline vector<string> tokenize(const string& line, char delim)
 {
     stringstream input(line);
-    deque<string> tokens;
+    vector<string> tokens;
     string token;
     while (getline(input, token, delim))
     {
@@ -28,99 +34,83 @@ deque<string> tokenize(const string& line, char delim)
     return tokens;
 }
 
-std::string build_message(deque<string> bucket, std::string seed = "")
+inline std::string build_message(vector<string>& bucket)
 {
-//     cout << "Checking seed: " << seed << endl;
     std::string solution;
     if (bucket.size() <= 0)
     {
         return "";
     }
-
-    if (seed.empty())
+    
+    auto piece_size = bucket.back().length();
+    
+    while (bucket.size() > 1)
     {
-        seed = bucket.back();
-        bucket.pop_back();
-    }
-
-    size_t last_bucket_size{};
-    while (bucket.size() != last_bucket_size)
-    {
-        std::vector<deque<string>::iterator> prefixes;
-        std::vector<deque<string>::iterator> postfixes;
-        last_bucket_size = bucket.size();
-
+        auto size_before = bucket.size();
         for (auto itr = bucket.begin(); itr != bucket.end();)
         {
-            auto& piece = *itr;
-            if (equal(piece.begin() + 1, piece.end(), seed.begin()))
+            auto match = bucket.end();
+            
+            auto compare_string = itr->substr(itr->length() - (piece_size - 1));
+//             std::cout << "Comparing: '" << compare_string << "'" << std::endl;
+            auto found = std::lower_bound(bucket.begin(), bucket.end(), compare_string);
+            auto first_found = bucket.end();
+            while (found != bucket.end() && equal(compare_string.begin(), compare_string.end(), found->begin()))
             {
-                prefixes.push_back(itr);
-            }
-            else if (equal(piece.begin(), piece.end() - 1, seed.end() - piece.length() + 1))
-            {
-                postfixes.push_back(itr);
-            }
-            ++itr;
-        }
-        
-        // Check to see if we have multiple solutions
-        if (prefixes.size() > 1)
-        {
-            for (auto itr : prefixes)
-            {
-                // Add to beginning
-                auto new_seed = itr->at(0) + seed;
-                // Remove from bucket
-                auto bucket_copy = bucket;
-                bucket_copy.erase(std::find(bucket_copy.begin(), bucket_copy.end(), *itr));
-                auto solution = build_message(bucket_copy, new_seed);
-                if (!solution.empty())
+                if (found != itr)
                 {
-                    return solution;
+                    if (first_found == bucket.end())
+                    {
+                        match = first_found = found;
+                    }
+                    else if (*first_found != *found)
+                    {
+                        match = found;
+                        break;
+                    }
                 }
+                found++;
             }
-        }
-        else if (postfixes.size() > 1)
-        {
-            for (auto itr : postfixes)
+            
+            if (match != bucket.end() && match == first_found)
             {
                 // Add to beginning
-                auto new_seed = seed;
-                new_seed.push_back(itr->back());
+//                 std::cout << "Changing '" << *itr;
+                itr->append(first_found->substr(piece_size - 1));
                 // Remove from bucket
-                auto bucket_copy = bucket;
-                bucket_copy.erase(std::find(bucket_copy.begin(), bucket_copy.end(), *itr));
-                auto solution = build_message(bucket_copy, new_seed);
-                if (!solution.empty())
+//                 std::cout << "' to '" << *itr << "'" << endl;
+                itr = bucket.erase(first_found);
+            }
+            else
+            {
+                // Multiple solutions
+                itr++;
+            }
+        }
+        if (size_before == bucket.size())
+        {
+            // We have duplicates that match, join them
+            auto dup = std::adjacent_find(bucket.begin(), bucket.end(), [=](const std::string& s1, const std::string& s2){ return std::equal(s1.begin() + 1, s1.begin() + piece_size, s2.begin());});
+            if (dup != bucket.end())
+            {
+                dup->push_back(dup->back());
+                bucket.erase(dup + 1);
+                continue;
+            }
+            else
+            {
+                std::cout << "Fail! No dups!" << std::endl;
+                for (auto& chunk : bucket)
                 {
-                    return solution;
+                    std::cout << chunk << endl;
                 }
-            }
-        }
-        else
-        {
-            if (prefixes.size() == 1)
-            {
-                auto itr = prefixes.back();
-                // Add to beginning
-                seed = itr->at(0) + seed;
-                // Remove from bucket
-                bucket.erase(itr);
-            }
-            else if (postfixes.size() == 1)
-            {
-                auto itr = postfixes.back();
-                // Add to end
-                seed.push_back(itr->back());
-                // Remove from bucket
-                bucket.erase(itr);
+                break;
             }
         }
     }
     
     // Return the completed solution if we've used all the pieces
-    return bucket.size() == 0 ? seed : "";
+    return bucket.size() == 1 ? bucket.back() : "";
 }
 
 int main(int argc, const char* argv[])
@@ -130,7 +120,7 @@ int main(int argc, const char* argv[])
         exit(1);
     }
 
-    ifstream input(argv[1]);
+    std::ifstream input(argv[1]);
 
     string line;
     while (std::getline(input, line))
@@ -138,11 +128,13 @@ int main(int argc, const char* argv[])
         if (!line.empty())
         {
             auto pieces = tokenize(line, '|');
+            std::sort(pieces.begin(), pieces.end());
             std::string solution = build_message(pieces);
             
             if (!solution.empty())
             {
-                cout << solution << endl;
+                printf("%s\n", solution.c_str());
+//                 cout << solution << endl;
             }
         }
     }
