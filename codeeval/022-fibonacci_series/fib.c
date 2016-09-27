@@ -16,7 +16,7 @@ int fib(int n)
     }
 }
 
-int main(int argc, const char argv[])
+int main(int argc, const char* argv[])
 {
     
 }
